@@ -143,15 +143,19 @@ public class BillAnalysisController {
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         List<Bill> bills = billRepository.findAllByOrderByIdDesc();
-        long original   = bills.stream().filter(b -> "ORIGINAL".equals(b.getVerdict())).count();
-        long tampered   = bills.stream().filter(b -> "TAMPERED".equals(b.getVerdict())).count();
-        long suspicious = bills.stream().filter(b -> "SUSPICIOUS".equals(b.getVerdict())).count();
+        long original     = bills.stream().filter(b -> "ORIGINAL".equals(b.getVerdict())).count();
+        long tampered     = bills.stream().filter(b -> "TAMPERED".equals(b.getVerdict())).count();
+        long suspicious   = bills.stream().filter(b -> "SUSPICIOUS".equals(b.getVerdict())).count();
+        long aiGenerated  = bills.stream().filter(b -> "AI_GENERATED".equals(b.getVerdict())).count();
+        long notABill     = bills.stream().filter(b -> "NOT_A_BILL".equals(b.getVerdict())).count();
 
-        model.addAttribute("total",      bills.size());
-        model.addAttribute("original",   original);
-        model.addAttribute("tampered",   tampered);
-        model.addAttribute("suspicious", suspicious);
-        model.addAttribute("bills",      bills);
+        model.addAttribute("total",        bills.size());
+        model.addAttribute("original",     original);
+        model.addAttribute("tampered",     tampered);
+        model.addAttribute("suspicious",   suspicious);
+        model.addAttribute("aiGenerated",  aiGenerated);
+        model.addAttribute("notABill",     notABill);
+        model.addAttribute("bills",        bills);
         return "dashboard";
     }
 

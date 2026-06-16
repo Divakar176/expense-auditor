@@ -39,7 +39,9 @@
         .stat-card.total  .value { color: #333; }
         .stat-card.original  .value { color: #1D9E75; }
         .stat-card.tampered  .value { color: #E24B4A; }
-        .stat-card.suspicious .value { color: #BA7517; }
+        .stat-card.suspicious    .value { color: #BA7517; }
+        .stat-card.ai-generated .value { color: #6b21a8; }
+        .stat-card.not-a-bill   .value { color: #1a4e8c; }
 
         .charts-grid {
             display: grid;
@@ -69,7 +71,9 @@
         }
         .badge.ORIGINAL   { background: #e1f5ee; color: #0F6E56; }
         .badge.TAMPERED   { background: #fcebeb; color: #A32D2D; }
-        .badge.SUSPICIOUS { background: #faeeda; color: #854F0B; }
+        .badge.SUSPICIOUS    { background: #faeeda; color: #854F0B; }
+        .badge.AI_GENERATED { background: #f0e6ff; color: #6b21a8; }
+        .badge.NOT_A_BILL   { background: #e0f0ff; color: #1a4e8c; }
 
         .back-btn {
             display: inline-block; margin-bottom: 1.5rem;
@@ -119,6 +123,14 @@
         <div class="stat-card suspicious">
             <div class="label">Suspicious</div>
             <div class="value" th:text="${suspicious}">0</div>
+        </div>
+        <div class="stat-card ai-generated">
+            <div class="label">AI Generated</div>
+            <div class="value" th:text="${aiGenerated}">0</div>
+        </div>
+        <div class="stat-card not-a-bill">
+            <div class="label">Not a Bill</div>
+            <div class="value" th:text="${notABill}">0</div>
         </div>
     </div>
 

@@ -142,9 +142,11 @@
         .metric-label { font-weight: 600; color: #6e707e; }
         .metric-value { font-weight: 700; }
 
-        .state-ORIGINAL  { background: #e2f7f0; color: #0f6848; }
-        .state-SUSPICIOUS { background: #fff4e0; color: #b26a00; }
-        .state-TAMPERED  { background: #ffebe9; color: #a81c1c; }
+        .state-ORIGINAL      { background: #e2f7f0; color: #0f6848; }
+        .state-SUSPICIOUS    { background: #fff4e0; color: #b26a00; }
+        .state-TAMPERED      { background: #ffebe9; color: #a81c1c; }
+        .state-AI_GENERATED  { background: #f0e6ff; color: #6b21a8; }
+        .state-NOT_A_BILL    { background: #e0f0ff; color: #1a4e8c; }
 
         .reason-box {
             background: var(--light);
@@ -327,7 +329,14 @@
             loading.style.display = 'none';
             resultArea.style.display = 'block';
 
-            document.getElementById('verdictBadge').innerText = data.status;
+            const verdictLabels = {
+                'ORIGINAL':     '✅ ORIGINAL — Clean Bill',
+                'SUSPICIOUS':   '⚠️ SUSPICIOUS',
+                'TAMPERED':     '🚨 TAMPERED — Fraud Detected',
+                'AI_GENERATED': '🤖 AI GENERATED — Synthetic Bill',
+                'NOT_A_BILL':   '📄 NOT A BILL — Wrong Document'
+            };
+            document.getElementById('verdictBadge').innerText = verdictLabels[data.status] || data.status;
             document.getElementById('verdictBadge').className = `verdict-badge state-${data.status}`;
             document.getElementById('resConfidence').innerText = data.confidence + '%';
             document.getElementById('resRisk').innerText = data.riskLevel;
