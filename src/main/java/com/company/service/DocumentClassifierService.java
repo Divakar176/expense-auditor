@@ -15,21 +15,19 @@ public class DocumentClassifierService {
 
     public boolean isBill(String text) {
         if (text == null || text.trim().isEmpty()) return false;
-
         String lower = text.toLowerCase();
         boolean hasKeywords = lower.contains("invoice") || lower.contains("receipt")
                 || lower.contains("bill") || lower.contains("gst")
                 || lower.contains("tax invoice") || lower.contains("total amount")
                 || lower.contains("subtotal") || lower.contains("payment due")
                 || lower.contains("amount due") || lower.contains("purchase order");
-
         if (hasKeywords) return true;
-        return isDocumentABillByAI(text);
+        return classifyDocumentType(text) == null;
     }
 
     public String classifyDocumentType(String text) {
         if (text == null || text.trim().isEmpty()) {
-            return "EMPTY_DOCUMENT: No content found in the uploaded file.";
+            return "No content found in the uploaded file.";
         }
 
         try {
@@ -39,34 +37,31 @@ public class DocumentClassifierService {
                     .defaultHeader("Content-Type", "application/json")
                     .build();
 
-            String prompt = """
-                You are a document type classifier.
-
-                Read the text below and identify what type of document it is.
-
-                Respond ONLY with one of these exact labels:
-                BILL = It is a bill, invoice, receipt, or financial transaction document
-                RESUME = It is a resume or CV
-                CONTRACT = It is a legal contract or agreement
-                REPORT = It is a report, research paper, or article
-                ID_CARD = It is an ID, passport, or identity document
-                LETTER = It is a letter or email
-                IMAGE_NO_TEXT = The image has no readable text
-                OTHER = Something else entirely
-
-                DOCUMENT TEXT:
-                """ + text.substring(0, Math.min(text.length(), 2000));
+            String prompt = "You are a document type classifier.\n\n"
+                + "Read the text below and identify what type of document it is.\n\n"
+                + "Respond with ONLY one of these exact words:\n"
+                + "BILL - if it is a bill, invoice, receipt, or financial transaction\n"
+                + "RESUME - if it is a resume or CV\n"
+                + "CONTRACT - if it is a legal contract\n"
+                + "REPORT - if it is a report, article, or research paper\n"
+                + "ID_CARD - if it is an ID or passport\n"
+                + "LETTER - if it is a letter or email\n"
+                + "OTHER - if it is something else\n\n"
+                + "DOCUMENT TEXT:\n"
+                + text.substring(0, Math.min(text.length(), 2000));
 
             Map<String, Object> requestBody = Map.of(
                     "model", "llama3-8b-8192",
                     "messages", List.of(
                             Map.of("role", "system", "content",
-                                    "You are a document classifier. Reply only with the exact label."),
+                                    "You classify documents. Reply with only one word from the given list."),
                             Map.of("role", "user", "content", prompt)
                     ),
                     "temperature", 0,
                     "max_tokens", 10
             );
+
+            System.out.println("=== CALLING GROQ AI for document classification ===");
 
             String response = webClient.post()
                     .bodyValue(requestBody)
@@ -74,26 +69,24 @@ public class DocumentClassifierService {
                     .bodyToMono(String.class)
                     .block();
 
-            if (response == null) return null;
+            System.out.println("=== GROQ CLASSIFY RESPONSE: " + response + " ===");
 
-            if (response.contains("BILL"))         return null;
-            if (response.contains("RESUME"))       return "This document appears to be a Resume/CV, not a bill.";
-            if (response.contains("CONTRACT"))     return "This document appears to be a Legal Contract, not a bill.";
-            if (response.contains("REPORT"))       return "This document appears to be a Report or Article, not a bill.";
-            if (response.contains("ID_CARD"))      return "This document appears to be an ID/Passport, not a bill.";
-            if (response.contains("LETTER"))       return "This document appears to be a Letter or Email, not a bill.";
-            if (response.contains("IMAGE_NO_TEXT"))return "No readable text found in the uploaded image.";
-            if (response.contains("OTHER"))        return "This document does not appear to be a bill or receipt.";
+            if (response == null) return null;
+            String upper = response.toUpperCase();
+
+            if (upper.contains("BILL"))     return null; // it IS a bill
+            if (upper.contains("RESUME"))   return "This document appears to be a Resume/CV, not a bill.";
+            if (upper.contains("CONTRACT")) return "This document appears to be a Legal Contract, not a bill.";
+            if (upper.contains("REPORT"))   return "This document appears to be a Report or Article, not a bill.";
+            if (upper.contains("ID_CARD"))  return "This document appears to be an ID/Passport, not a bill.";
+            if (upper.contains("LETTER"))   return "This document appears to be a Letter or Email, not a bill.";
+            if (upper.contains("OTHER"))    return "This document does not appear to be a bill or receipt.";
 
             return null;
 
         } catch (Exception e) {
-            System.err.println("DocumentClassifierService error: " + e.getMessage());
+            System.err.println("=== DocumentClassifierService ERROR: " + e.getMessage() + " ===");
             return null;
         }
-    }
-
-    private boolean isDocumentABillByAI(String text) {
-        return classifyDocumentType(text) == null;
     }
 }

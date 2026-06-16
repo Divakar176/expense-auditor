@@ -23,27 +23,18 @@ public class AiBillDetectorService {
                     .defaultHeader("Content-Type", "application/json")
                     .build();
 
-            String prompt = """
-                You are a forensic document expert specializing in detecting AI-generated invoices and receipts.
-
-                Analyze the bill/invoice text below and determine whether it was:
-                - Created by an AI tool (e.g. ChatGPT, Claude, a fake invoice generator)
-                - OR is a real scanned/photographed invoice from an actual transaction
-
-                Signs of AI-generated bills:
-                - Perfect formatting with no irregularities
-                - Suspiciously round numbers
-                - Generic vendor names like "ABC Company", "XYZ Services", "Sample Store"
-                - Placeholder-style addresses ("123 Main Street", "City, State 12345")
-                - Missing or fake GST/tax numbers
-                - Too clean/structured for a real receipt
-
-                Respond ONLY with one word:
-                YES = AI generated bill
-                NO = Real bill
-
-                BILL TEXT:
-                """ + text.substring(0, Math.min(text.length(), 3000));
+            String prompt = "You are a forensic document expert.\n\n"
+                + "Analyze the bill/invoice text below and determine whether it was:\n"
+                + "- Created by an AI tool (ChatGPT, Claude, fake invoice generator)\n"
+                + "- OR is a real scanned/photographed invoice from an actual transaction\n\n"
+                + "Signs of AI-generated bills:\n"
+                + "- Perfect formatting with no irregularities\n"
+                + "- Generic vendor names like ABC Company, XYZ Services\n"
+                + "- Placeholder addresses like 123 Main Street\n"
+                + "- Missing or fake GST/tax numbers\n\n"
+                + "Respond with only one word: YES or NO\n\n"
+                + "BILL TEXT:\n"
+                + text.substring(0, Math.min(text.length(), 2000));
 
             Map<String, Object> requestBody = Map.of(
                     "model", "llama3-8b-8192",
@@ -56,16 +47,22 @@ public class AiBillDetectorService {
                     "max_tokens", 5
             );
 
+            System.out.println("=== CALLING GROQ AI for AI-generated check ===");
+
             String response = webClient.post()
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
 
-            return response != null && response.toUpperCase().contains("\"YES\"");
+            System.out.println("=== GROQ RESPONSE: " + response + " ===");
+
+            if (response == null) return false;
+            String upper = response.toUpperCase();
+            return upper.contains("\"YES\"") || upper.contains(": YES") || upper.contains("YES");
 
         } catch (Exception e) {
-            System.err.println("AiBillDetectorService error: " + e.getMessage());
+            System.err.println("=== AiBillDetectorService ERROR: " + e.getMessage() + " ===");
             return false;
         }
     }
