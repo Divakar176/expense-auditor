@@ -10,7 +10,7 @@ import java.util.Map;
 @Service
 public class AiBillDetectorService {
 
-    @Value("${openai.api.key}")
+    @Value("${groq.api.key}")
     private String apiKey;
 
     public boolean isAiGenerated(String text) {
@@ -18,7 +18,7 @@ public class AiBillDetectorService {
 
         try {
             WebClient webClient = WebClient.builder()
-                    .baseUrl("https://api.openai.com/v1/chat/completions")
+                    .baseUrl("https://api.groq.com/openai/v1/chat/completions")
                     .defaultHeader("Authorization", "Bearer " + apiKey)
                     .defaultHeader("Content-Type", "application/json")
                     .build();
@@ -27,7 +27,7 @@ public class AiBillDetectorService {
                 You are a forensic document expert specializing in detecting AI-generated invoices and receipts.
 
                 Analyze the bill/invoice text below and determine whether it was:
-                - Created by an AI tool (e.g. ChatGPT, Claude, Midjourney, a fake invoice generator)
+                - Created by an AI tool (e.g. ChatGPT, Claude, a fake invoice generator)
                 - OR is a real scanned/photographed invoice from an actual transaction
 
                 Signs of AI-generated bills:
@@ -36,7 +36,6 @@ public class AiBillDetectorService {
                 - Generic vendor names like "ABC Company", "XYZ Services", "Sample Store"
                 - Placeholder-style addresses ("123 Main Street", "City, State 12345")
                 - Missing or fake GST/tax numbers
-                - No realistic transaction reference numbers
                 - Too clean/structured for a real receipt
 
                 Respond ONLY with one word:
@@ -47,7 +46,7 @@ public class AiBillDetectorService {
                 """ + text.substring(0, Math.min(text.length(), 3000));
 
             Map<String, Object> requestBody = Map.of(
-                    "model", "gpt-4o-mini",
+                    "model", "llama3-8b-8192",
                     "messages", List.of(
                             Map.of("role", "system", "content",
                                     "You are a forensic invoice analyst. Reply only YES or NO."),
