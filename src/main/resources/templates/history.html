@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Audit History</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 30px; background: #f4f6f9; }
+        h2 { color: #3a3aaa; }
+        table { width: 100%; border-collapse: collapse; background: white;
+                border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        th { background: #3a3aaa; color: white; padding: 12px 16px; text-align: left; font-size: 13px; }
+        td { padding: 12px 16px; border-bottom: 1px solid #eee; font-size: 13px; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f0f0ff; }
+        .ORIGINAL  { color: #1a7a1a; font-weight: bold; }
+        .TAMPERED  { color: #cc0000; font-weight: bold; }
+        .SUSPICIOUS { color: #cc7700; font-weight: bold; }
+        .back-btn  { display: inline-block; margin-bottom: 20px; padding: 8px 18px;
+                     background: #3a3aaa; color: white; border-radius: 6px;
+                     text-decoration: none; font-size: 14px; }
+        .back-btn:hover { background: #2a2a8a; }
+        .empty-msg { text-align: center; padding: 40px; color: #888; }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-btn">← Back to Auditor</a>
+    <h2>Forensic Audit History</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Vendor</th>
+                <th>Amount (₹)</th>
+                <th>Bill Date</th>
+                <th>Invoice No</th>
+                <th>Risk Score</th>
+                <th>Verdict</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:if="${#lists.isEmpty(bills)}">
+                <td colspan="7" class="empty-msg">No audits performed yet.</td>
+            </tr>
+            <tr th:each="bill : ${bills}">
+                <td th:text="${bill.id}"></td>
+                <td th:text="${bill.vendorName}"></td>
+                <td th:text="${bill.amount}"></td>
+                <td th:text="${bill.billDate}"></td>
+                <td th:text="${bill.invoiceNo}"></td>
+                <td th:text="${bill.riskScore}"></td>
+                <td th:class="${bill.verdict}" th:text="${bill.verdict}"></td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

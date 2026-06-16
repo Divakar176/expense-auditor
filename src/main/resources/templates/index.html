@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Expense Auditor Panel</title>
+    <style>
+        :root {
+            --primary: #4e73df;
+            --success: #1cc88a;
+            --warning: #f6c23e;
+            --danger: #e74a3b;
+            --dark: #5a5c69;
+            --light: #f8f9fc;
+        }
+        body { 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .navbar {
+            background-color: #fff;
+            padding: 15px 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-bottom: 1px solid #e3e6f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar h1 { margin: 0; font-size: 20px; color: #4e73df; }
+        .history-btn {
+            background-color: #4e73df;
+            color: white;
+            padding: 9px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        .history-btn:hover { background-color: #2e59d9; }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            max-width: 1300px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        @media (max-width: 900px) {
+            .dashboard { grid-template-columns: 1fr; }
+        }
+        
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e3e6f0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #4e73df;
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .dropzone {
+            border: 2px dashed #b5c6f3;
+            background-color: var(--light);
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--primary);
+            background-color: #eaecf8;
+        }
+        .dropzone p { margin: 10px 0 0 0; font-size: 15px; color: #6e707e; }
+        .dropzone input { display: none; }
+
+        #previewContainer {
+            margin-top: 20px;
+            display: none;
+            flex-grow: 1;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #e3e6f0;
+            border-radius: 6px;
+            background: #fafafa;
+            overflow: hidden;
+            min-height: 300px;
+        }
+        #filePreview { max-width: 100%; max-height: 450px; display: block; object-fit: contain; }
+        #pdfFallback { font-size: 14px; color: var(--dark); text-align: center; padding: 20px; }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.2s;
+            width: 100%;
+        }
+        button:hover { background-color: #2e59d9; }
+
+        #resultArea { display: none; }
+        .verdict-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f3f9;
+        }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-label { font-weight: 600; color: #6e707e; }
+        .metric-value { font-weight: 700; }
+
+        .state-ORIGINAL  { background: #e2f7f0; color: #0f6848; }
+        .state-SUSPICIOUS { background: #fff4e0; color: #b26a00; }
+        .state-TAMPERED  { background: #ffebe9; color: #a81c1c; }
+
+        .reason-box {
+            background: var(--light);
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #adbcff;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-top: 15px;
+        }
+        #loading { display: none; text-align: center; color: var(--primary); font-weight: 600; padding: 20px; }
+
+        /* Success save notification */
+        .save-notice {
+            display: none;
+            margin-top: 15px;
+            padding: 10px 15px;
+            background: #e2f7f0;
+            border-left: 4px solid #1cc88a;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #0f6848;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h1>Automated Corporate Expense Auditor</h1>
+    <a href="/history" class="history-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+        </svg>
+        View Audit History
+    </a>
+</div>
+
+<div class="dashboard">
+    <div class="card">
+        <div class="card-title">Document Ingestion Layer</div>
+        <form id="uploadForm">
+            <div class="dropzone" id="dropzone">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4e73df" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p>Drag & drop file here or <span style="color: var(--primary); font-weight:600;">Browse</span></p>
+                <input type="file" id="billFile" accept="image/*,.pdf" required>
+            </div>
+            <button type="submit">Execute Forensic Audit</button>
+        </form>
+        
+        <div id="previewContainer">
+            <img id="filePreview" src="" alt="Receipt Preview">
+            <div id="pdfFallback"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Forensic Audit Verdict</div>
+        
+        <div id="loading">Processing Document Arrays via Tesseract Core...</div>
+
+        <div id="resultArea">
+            <div>
+                <span id="verdictBadge" class="verdict-badge">ORIGINAL</span>
+            </div>
+
+            <div class="metric-row">
+                <span class="metric-label">System Confidence Level</span>
+                <span class="metric-value" id="resConfidence">0%</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Risk Classification</span>
+                <span class="metric-value" id="resRisk">LOW</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Vendor Detected</span>
+                <span class="metric-value" id="resVendor">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Amount Detected</span>
+                <span class="metric-value" id="resAmount">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Bill Date</span>
+                <span class="metric-value" id="resDate">-</span>
+            </div>
+            
+            <div class="reason-box" id="resReason"></div>
+
+            <div class="save-notice" id="saveNotice">
+                ✅ Audit result saved to database successfully.
+                <a href="/history" style="color: #0f6848; margin-left: 10px; text-decoration: underline;">View History →</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('billFile');
+    const previewContainer = document.getElementById('previewContainer');
+    const filePreview = document.getElementById('filePreview');
+    const pdfFallback = document.getElementById('pdfFallback');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+        }, false);
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        fileInput.files = dt.files;
+        handleFilePreview(dt.files[0]);
+    });
+
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) handleFilePreview(this.files[0]);
+    });
+
+    function handleFilePreview(file) {
+        if (!file) return;
+        previewContainer.style.display = 'flex';
+        
+        if (file.type === "application/pdf" || file.name.endsWith('.pdf')) {
+            filePreview.style.display = 'none';
+            pdfFallback.style.display = 'block';
+            pdfFallback.innerHTML = `
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#e74a3b" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                <div style="margin-top:8px; font-weight:600;">${file.name}</div>
+                <span style="font-size:12px; color:#aaa;">Digital PDF Data Stream</span>
+            `;
+        } else {
+            pdfFallback.style.display = 'none';
+            filePreview.style.display = 'block';
+            const reader = new FileReader();
+            reader.onload = function(e) { filePreview.src = e.target.result; }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (fileInput.files.length === 0) return;
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        const resultArea = document.getElementById('resultArea');
+        const loading = document.getElementById('loading');
+        const saveNotice = document.getElementById('saveNotice');
+        
+        resultArea.style.display = 'none';
+        saveNotice.style.display = 'none';
+        loading.style.display = 'block';
+
+        try {
+            const response = await fetch('/analyze', { method: 'POST', body: formData });
+            if (!response.ok) throw new Error('Network reporting pipeline failed.');
+
+            const data = await response.json();
+            
+            loading.style.display = 'none';
+            resultArea.style.display = 'block';
+
+            document.getElementById('verdictBadge').innerText = data.status;
+            document.getElementById('verdictBadge').className = `verdict-badge state-${data.status}`;
+            document.getElementById('resConfidence').innerText = data.confidence + '%';
+            document.getElementById('resRisk').innerText = data.riskLevel;
+            document.getElementById('resReason').innerText = data.reason;
+            document.getElementById('resVendor').innerText = data.vendorName || 'Not detected';
+            document.getElementById('resAmount').innerText = data.amount ? '₹' + data.amount : 'Not detected';
+            document.getElementById('resDate').innerText = data.billDate || 'Not detected';
+
+            // Show save confirmation
+            saveNotice.style.display = 'block';
+
+        } catch (error) {
+            loading.style.display = 'none';
+            alert('Error running analysis: ' + error.message);
+        }
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Audit Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; color: #333; }
+
+        .navbar {
+            background: #1a1a2e; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .navbar h1 { color: white; font-size: 18px; font-weight: 500; }
+        .navbar a {
+            color: #a0a8c0; text-decoration: none; font-size: 14px;
+            margin-left: 20px;
+        }
+        .navbar a:hover { color: white; }
+
+        .container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+
+        .page-title { font-size: 22px; font-weight: 500; margin-bottom: 1.5rem; color: #1a1a2e; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: white; border-radius: 12px;
+            padding: 1.25rem; text-align: center;
+            border: 0.5px solid #e0e0e0;
+        }
+        .stat-card .label { font-size: 12px; color: #888; margin-bottom: 6px; }
+        .stat-card .value { font-size: 32px; font-weight: 500; }
+        .stat-card.total  .value { color: #333; }
+        .stat-card.original  .value { color: #1D9E75; }
+        .stat-card.tampered  .value { color: #E24B4A; }
+        .stat-card.suspicious .value { color: #BA7517; }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .chart-card {
+            background: white; border-radius: 12px;
+            padding: 1.25rem; border: 0.5px solid #e0e0e0;
+        }
+        .chart-card h3 { font-size: 13px; font-weight: 500; margin-bottom: 16px; color: #444; }
+
+        .chart-card.full {
+            grid-column: 1 / -1;
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 12px; color: #888; font-weight: 500;
+             border-bottom: 0.5px solid #eee; }
+        td { padding: 10px 12px; border-bottom: 0.5px solid #f0f0f0; color: #333; }
+        tr:last-child td { border-bottom: none; }
+
+        .badge {
+            display: inline-block; padding: 3px 10px;
+            border-radius: 20px; font-size: 11px; font-weight: 500;
+        }
+        .badge.ORIGINAL   { background: #e1f5ee; color: #0F6E56; }
+        .badge.TAMPERED   { background: #fcebeb; color: #A32D2D; }
+        .badge.SUSPICIOUS { background: #faeeda; color: #854F0B; }
+
+        .back-btn {
+            display: inline-block; margin-bottom: 1.5rem;
+            padding: 8px 16px; background: white;
+            border: 0.5px solid #ddd; border-radius: 8px;
+            text-decoration: none; color: #555; font-size: 13px;
+        }
+        .back-btn:hover { background: #f5f5f5; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h1>Automated Corporate Expense Auditor</h1>
+    <div>
+        <a th:href="@{/}">Auditor</a>
+        <a th:href="@{/history}">History</a>
+        <a th:href="@{/dashboard}" style="color:white;">Dashboard</a>
+    </div>
+</div>
+
+<div class="container">
+    <a th:href="@{/}" class="back-btn">← Back to Auditor</a>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+    <div style="font-size:22px; font-weight:500; color:#1a1a2e;">Forensic Audit Dashboard</div>
+    <a th:href="@{/export-pdf}"
+       style="padding:10px 20px; background:#1a1a2e; color:white;
+              border-radius:8px; text-decoration:none; font-size:13px;">
+        ⬇ Download PDF Report
+    </a>
+</div>
+
+    <!-- Stat cards -->
+    <div class="stats-grid">
+        <div class="stat-card total">
+            <div class="label">Total audits</div>
+            <div class="value" th:text="${total}">0</div>
+        </div>
+        <div class="stat-card original">
+            <div class="label">Original</div>
+            <div class="value" th:text="${original}">0</div>
+        </div>
+        <div class="stat-card tampered">
+            <div class="label">Tampered</div>
+            <div class="value" th:text="${tampered}">0</div>
+        </div>
+        <div class="stat-card suspicious">
+            <div class="label">Suspicious</div>
+            <div class="value" th:text="${suspicious}">0</div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>Verdict breakdown</h3>
+            <canvas id="verdictChart" height="220"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3>Top vendors audited</h3>
+            <canvas id="vendorChart" height="220"></canvas>
+        </div>
+        <div class="chart-card full">
+            <h3>Risk score per audit</h3>
+            <canvas id="riskChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <!-- Recent audits table -->
+    <div class="chart-card">
+        <h3>Recent audits</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Vendor</th>
+                    <th>Amount (₹)</th>
+                    <th>Bill date</th>
+                    <th>Invoice no</th>
+                    <th>Risk score</th>
+                    <th>Verdict</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="bill : ${bills}">
+                    <td th:text="${bill.id}"></td>
+                    <td th:text="${bill.vendorName}"></td>
+                    <td th:text="${bill.amount}"></td>
+                    <td th:text="${bill.billDate}"></td>
+                    <td th:text="${bill.invoiceNo}"></td>
+                    <td th:text="${bill.riskScore}"></td>
+                    <td>
+                        <span class="badge"
+                              th:classappend="${bill.verdict}"
+                              th:text="${bill.verdict}">
+                        </span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const bills = /*[[${bills}]]*/ [];
+
+    // Verdict chart
+    const verdictCounts = { ORIGINAL: 0, TAMPERED: 0, SUSPICIOUS: 0 };
+    bills.forEach(b => {
+        if (verdictCounts[b.verdict] !== undefined) verdictCounts[b.verdict]++;
+    });
+
+    new Chart(document.getElementById('verdictChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Original', 'Tampered', 'Suspicious'],
+            datasets: [{
+                data: [verdictCounts.ORIGINAL, verdictCounts.TAMPERED, verdictCounts.SUSPICIOUS],
+                backgroundColor: ['#1D9E75', '#E24B4A', '#BA7517'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } },
+            cutout: '65%'
+        }
+    });
+
+    // Vendor chart
+    const vendorCounts = {};
+    bills.forEach(b => {
+        vendorCounts[b.vendorName] = (vendorCounts[b.vendorName] || 0) + 1;
+    });
+    const topVendors = Object.entries(vendorCounts)
+        .sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    new Chart(document.getElementById('vendorChart'), {
+        type: 'bar',
+        data: {
+            labels: topVendors.map(v => v[0]),
+            datasets: [{
+                data: topVendors.map(v => v[1]),
+                backgroundColor: '#534AB7',
+                borderRadius: 4,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { ticks: { stepSize: 1 }, grid: { color: '#f0f0f0' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // Risk score trend
+    const riskLabels = bills.map((b, i) => '#' + b.id).reverse();
+    const riskData   = bills.map(b => b.riskScore).reverse();
+
+    new Chart(document.getElementById('riskChart'), {
+        type: 'line',
+        data: {
+            labels: riskLabels,
+            datasets: [{
+                data: riskData,
+                borderColor: '#534AB7',
+                backgroundColor: 'rgba(83,74,183,0.08)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, max: 100, grid: { color: '#f0f0f0' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
